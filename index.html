@@ -2,63 +2,12 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <!-- 애플워치 화면 확대/스크롤 방지 및 웹앱 모드 설정 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="주량세이프" />
-  <link id="appleTouchIcon" rel="apple-touch-icon" sizes="180x180" href="" />
-  <link id="faviconIcon" rel="icon" type="image/png" href="" />
-  <title>주량 세이프 카운터</title>
-  <script>
-    // 아이폰 홈 화면 추가 시 예쁜 다크 카드형 맥주/소주 아이콘(180x180 PNG)을 자동 생성해 연결
-    (function generateAppIcon() {
-      const canvas = document.createElement('canvas');
-      canvas.width = 180;
-      canvas.height = 180;
-      const ctx = canvas.getContext('2d');
-
-      // 다크 그라데이션 배경
-      const grad = ctx.createLinearGradient(0, 0, 180, 180);
-      grad.addColorStop(0, '#1e272e');
-      grad.addColorStop(1, '#0f1418');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 180, 180);
-
-      // 은은한 네온 그린 링
-      ctx.strokeStyle = '#00e676';
-      ctx.lineWidth = 6;
-      ctx.beginPath();
-      ctx.arc(90, 90, 74, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // 맥주 + 소주 이모지 렌더링
-      ctx.font = '64px "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('🍺🍶', 90, 82);
-
-      // 하단 포인트 텍스트
-      ctx.fillStyle = '#00e676';
-      ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.fillText('2.5 LIMIT', 90, 134);
-
-      const dataUrl = canvas.toDataURL('image/png');
-      document.getElementById('appleTouchIcon').href = dataUrl;
-      document.getElementById('faviconIcon').href = dataUrl;
-    })();
-  </script>
+  <title>음주 카운터</title>
   <style>
-    :root {
-      --bg-color: #121212;
-      --card-bg: #1e1e1e;
-      --accent: #00e676;
-      --somaek: #ffd54f;
-      --warning: #ffab00;
-      --danger: #ff1744;
-      --text-main: #ffffff;
-      --text-sub: #a0a0a0;
-    }
-
     * {
       box-sizing: border-box;
       margin: 0;
@@ -67,427 +16,222 @@
       user-select: none;
     }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-main);
+    /* 전체 화면 고정 (스크롤 원천 차단) */
+    html, body {
+      width: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: #000000;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+    }
+
+    /* 상단 X 버튼 영역을 피해 한 화면에 쏙 들어오도록 압축 배치 */
+    .container {
       display: flex;
       flex-direction: column;
-      height: 100dvh;
-      padding: env(safe-area-inset-top, 16px) 20px env(safe-area-inset-bottom, 16px);
-      transition: background-color 0.3s ease;
-    }
-
-    body.state-warning { background-color: #2b2100; }
-    body.state-danger { background-color: #38040e; }
-
-    header {
-      display: flex;
       justify-content: space-between;
-      align-items: center;
-      padding: 8px 0 12px;
+      height: 100%;
+      padding: 4px 6px 8px 6px;
+      gap: 4px;
     }
 
-    .app-title {
-      font-size: 16px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-    }
-
-    .reset-btn {
-      background: none;
-      border: 1px solid #444;
-      color: var(--text-sub);
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 13px;
-      cursor: pointer;
-    }
-
-    /* 주종 전환 탭 */
-    .mode-tabs {
+    /* 상단 상태 카드 2열 */
+    .status-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      background: var(--card-bg);
-      padding: 6px;
-      border-radius: 14px;
-      margin-bottom: 12px;
+      gap: 4px;
+      height: 36%;
     }
 
-    .tab-btn {
-      padding: 12px 8px;
-      border: none;
+    .card {
+      background: #1c1c1e;
       border-radius: 10px;
-      background: transparent;
-      color: var(--text-sub);
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .tab-btn.active-somaek {
-      background: rgba(255, 213, 79, 0.2);
-      color: var(--somaek);
-      border: 1px solid rgba(255, 213, 79, 0.5);
-    }
-
-    .tab-btn.active-soju {
-      background: rgba(0, 230, 118, 0.2);
-      color: var(--accent);
-      border: 1px solid rgba(0, 230, 118, 0.5);
-    }
-
-    .main-display {
-      flex: 1;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
+      padding: 2px 4px;
       text-align: center;
     }
 
-    .phase-title {
-      font-size: 15px;
-      color: var(--text-sub);
-      margin-bottom: 6px;
+    .card-label {
+      font-size: 9px;
+      color: #a1a1a6;
+      line-height: 1.1;
+      margin-bottom: 2px;
+      word-break: keep-all;
     }
 
-    .count-box {
-      display: flex;
-      align-items: baseline;
-      gap: 6px;
-      margin: 6px 0;
-    }
-
-    .current-count {
-      font-size: 92px;
+    .card-value {
+      font-size: 16px;
       font-weight: 800;
-      line-height: 1;
-      letter-spacing: -2px;
+      color: #ffffff;
     }
 
-    .target-count {
-      font-size: 26px;
-      color: var(--text-sub);
-      font-weight: 600;
+    .card-sub {
+      font-size: 9px;
+      color: #30d158;
+      margin-top: 1px;
     }
 
-    .status-msg {
-      font-size: 14px;
-      font-weight: 600;
-      margin-top: 8px;
-      min-height: 20px;
-    }
-
-    .stats-grid {
+    /* 추가 버튼 영역 (소주 / 소맥 나란히 배치해 높이 절약) */
+    .btn-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      width: 100%;
-      margin-top: 20px;
+      gap: 4px;
+      height: 38%;
     }
 
-    .stat-card {
-      background: var(--card-bg);
-      padding: 12px;
-      border-radius: 14px;
-      text-align: center;
-    }
-
-    .stat-label {
-      font-size: 11px;
-      color: var(--text-sub);
-      margin-bottom: 4px;
-    }
-
-    .stat-value {
-      font-size: 17px;
+    button {
+      border: none;
+      border-radius: 12px;
       font-weight: 700;
-    }
-
-    .controls {
+      cursor: pointer;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      margin-top: 16px;
+      justify-content: center;
+      align-items: center;
     }
 
-    .btn-add {
-      background-color: var(--accent);
-      color: #000;
-      border: none;
-      border-radius: 16px;
-      padding: 20px;
-      font-size: 21px;
-      font-weight: 800;
-      cursor: pointer;
-      transition: transform 0.1s ease, background-color 0.2s;
+    button:active {
+      opacity: 0.75;
+      transform: scale(0.97);
     }
 
-    .btn-add:active { transform: scale(0.97); }
-    .btn-add.somaek-btn { background-color: var(--somaek); color: #000; }
-    .btn-add.warning { background-color: var(--warning); color: #000; }
-    .btn-add.danger { background-color: var(--danger); color: #fff; }
+    .btn-soju {
+      background-color: #28cd41;
+      color: #000000;
+      font-size: 13px;
+    }
+
+    .btn-somaek {
+      background-color: #ff9f0a;
+      color: #000000;
+      font-size: 13px;
+    }
+
+    .btn-sub {
+      font-size: 9px;
+      font-weight: 600;
+      opacity: 0.8;
+      margin-top: 1px;
+    }
+
+    /* 하단 취소 및 초기화 버튼 */
+    .bottom-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 4px;
+      height: 22%;
+    }
 
     .btn-undo {
-      background: var(--card-bg);
-      color: var(--text-sub);
-      border: 1px solid #333;
-      border-radius: 12px;
-      padding: 12px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
+      background-color: #2c2c2e;
+      color: #ffffff;
+      font-size: 11px;
     }
 
-    .log-box {
-      margin-top: 12px;
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 10px 14px;
-      height: 80px;
-      overflow-y: auto;
-      font-size: 12px;
-      color: var(--text-sub);
+    .btn-reset {
+      background-color: #3a1c1c;
+      color: #ff453a;
+      font-size: 11px;
     }
-
-    .log-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 3px 0;
-      border-bottom: 1px solid #2a2a2a;
-    }
-    .log-item:last-child { border-bottom: none; }
   </style>
 </head>
 <body>
-
-  <header>
-    <span class="app-title">주량 세이프 (한도 2.5병)</span>
-    <button class="reset-btn" onclick="resetAll()">초기화</button>
-  </header>
-
-  <!-- 소맥 / 소주 자유 전환 탭 -->
-  <div class="mode-tabs">
-    <button id="tabSomaek" class="tab-btn active-somaek" onclick="setMode('somaek')">🍺 소맥 (<span id="tabSomaekNum">0</span>잔)</button>
-    <button id="tabSoju" class="tab-btn" onclick="setMode('soju')">🍶 소주 3/4잔 (<span id="tabSojuNum">0</span>잔)</button>
-  </div>
-
-  <div class="main-display">
-    <div id="phaseTitle" class="phase-title">소맥 목표: 3잔 권장</div>
-    <div class="count-box">
-      <span id="currentCount" class="current-count">0</span>
-      <span id="targetCount" class="target-count">/ 3잔</span>
-    </div>
-    <div id="statusMsg" class="status-msg">천천히 시작하세요!</div>
-
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">소주(3/4잔) 허용 최대치</div>
-        <div id="dynamicMaxDisplay" class="stat-value">최대 24잔</div>
+  <div class="container">
+    <!-- 1. 상단 정보 표시 -->
+    <div class="status-grid">
+      <div class="card">
+        <div class="card-label">남은 소주 허용치</div>
+        <div class="card-value" id="remainSoju">17잔</div>
+        <div class="card-sub" id="drinkCountText">소주 0 · 소맥 0</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">누적 알코올 (한도 2.5병)</div>
-        <div id="bottleEq" class="stat-value">0.00 병</div>
+      <div class="card">
+        <div class="card-label">누적 알코올</div>
+        <div class="card-value" id="totalBottles">0.00 병</div>
+        <div class="card-sub" id="totalAlcohol">순수알코올 0g</div>
       </div>
     </div>
-  </div>
 
-  <div class="controls">
-    <button id="addBtn" class="btn-add somaek-btn" onclick="addDrink()">+1 소맥 추가</button>
-    <button class="btn-undo" onclick="undoDrink()">직전 기록 1잔 취소 (-1)</button>
-  </div>
+    <!-- 2. 메인 추가 버튼 (소주 / 소맥) -->
+    <div class="btn-row">
+      <button class="btn-soju" onclick="addDrink('soju')">
+        <span>+1 소주</span>
+        <span class="btn-sub">3/4잔</span>
+      </button>
+      <button class="btn-somaek" onclick="addDrink('somaek')">
+        <span>+1 소맥</span>
+        <span class="btn-sub">제한없음</span>
+      </button>
+    </div>
 
-  <div id="logBox" class="log-box">
-    <div style="text-align:center; padding-top:20px;">아직 마신 기록이 없습니다.</div>
+    <!-- 3. 직전 취소 & 전체 리셋 -->
+    <div class="bottom-row">
+      <button class="btn-undo" onclick="undoLast()">직전 1잔 취소 (-1)</button>
+      <button class="btn-reset" onclick="resetAll()">초기화</button>
+    </div>
   </div>
 
   <script>
-    const TARGET_LIMIT_ML = 900;     // 목표 한도: 소주 2병 반 (900ml)
-    const SOMAEK_EQ_ML = 92;         // 소맥 1잔의 소주 환산량 (소주 50ml + 맥주 알코올 환산 42ml)
-    const SOJU_3_4_ML = 37.5;        // 소주잔 3/4잔 용량 (37.5ml)
-    const RECOMMENDED_SOMAEK = 3;    // 권장 소맥 잔 수
+    // 기준 설정 (기존 최대 17잔 = 소주 약 2.5병 분량 기준)
+    const MAX_ALCOHOL_UNITS = 17.0; // 소주 1잔(3/4잔 기준) = 1.0 유닛
+    
+    // 소맥 1잔당 소주 대비 알코올 환산 비율 (예: 소맥 1잔 = 소주 1.3잔 분량)
+    // 필요에 따라 1.2 ~ 1.5 사이로 조절 가능
+    const SOMAEK_TO_SOJU_RATIO = 1.3; 
 
-    let state = JSON.parse(localStorage.getItem('drinkCounterV2')) || {
-      mode: 'somaek', // 'somaek' or 'soju'
-      somaekCount: 0,
-      sojuCount: 0,
-      logs: []
-    };
+    let history = []; // 'soju' 또는 'somaek' 기록 배열
 
-    function saveState() {
-      localStorage.setItem('drinkCounterV2', JSON.stringify(state));
+    function addDrink(type) {
+      history.push(type);
+      updateUI();
     }
 
-    // 소맥 잔 수에 따른 소주(3/4잔) 최대 허용 잔 수 계산
-    function getMaxSojuAllowed() {
-      const remainingMl = Math.max(0, TARGET_LIMIT_ML - (state.somaekCount * SOMAEK_EQ_ML));
-      return Math.round(remainingMl / SOJU_3_4_ML);
-    }
-
-    function setMode(newMode) {
-      state.mode = newMode;
-      saveState();
-      render();
-    }
-
-    function getCurrentTime() {
-      const now = new Date();
-      return now.toTimeString().slice(0, 5);
-    }
-
-    function addDrink() {
-      const time = getCurrentTime();
-
-      if (state.mode === 'somaek') {
-        state.somaekCount++;
-        state.logs.unshift({ type: '소맥', num: state.somaekCount, time });
-
-        const maxSoju = getMaxSojuAllowed();
-        const totalMl = (state.somaekCount * SOMAEK_EQ_ML) + (state.sojuCount * SOJU_3_4_ML);
-
-        if (totalMl > TARGET_LIMIT_ML) {
-          alert(`⚠️ 위험 경고! 소주 2병 반 한도를 초과했습니다!\n(현재 소맥 ${state.somaekCount}잔 + 소주 ${state.sojuCount}잔)`);
-        } else if (state.somaekCount === RECOMMENDED_SOMAEK) {
-          state.mode = 'soju';
-          alert(`🍺 소맥 ${RECOMMENDED_SOMAEK}잔 완료!\n소주(3/4잔) 모드로 자동 전환됩니다.\n남은 주량 기준 소주는 최대 ${maxSoju}잔까지 가능합니다.`);
-        }
-      } else {
-        state.sojuCount++;
-        state.logs.unshift({ type: '소주(3/4)', num: state.sojuCount, time });
-
-        const maxSoju = getMaxSojuAllowed();
-        if (state.sojuCount === maxSoju) {
-          alert(`🛑 한도 도달! 소주(3/4잔) 최대 허용치인 ${maxSoju}잔에 딱 도달했습니다.\n여기서 멈추시는 것을 권장합니다!`);
-        } else if (state.sojuCount > maxSoju) {
-          alert(`🚨 위험 경고! 허용된 소주 최대치(${maxSoju}잔)를 ${state.sojuCount - maxSoju}잔 초과했습니다!\n지금 즉시 음주를 중단하고 물을 마시세요!`);
-        }
+    function undoLast() {
+      if (history.length > 0) {
+        history.pop();
+        updateUI();
       }
-
-      saveState();
-      render();
-    }
-
-    function undoDrink() {
-      if (state.logs.length === 0) return;
-      const last = state.logs.shift();
-      if (last.type === '소맥') {
-        state.somaekCount = Math.max(0, state.somaekCount - 1);
-      } else {
-        state.sojuCount = Math.max(0, state.sojuCount - 1);
-      }
-      saveState();
-      render();
     }
 
     function resetAll() {
-      if (!confirm('오늘 음주 기록을 모두 초기화할까요?')) return;
-      state = { mode: 'somaek', somaekCount: 0, sojuCount: 0, logs: [] };
-      saveState();
-      render();
+      if (history.length === 0) return;
+      history = [];
+      updateUI();
     }
 
-    function render() {
-      const tabSomaek = document.getElementById('tabSomaek');
-      const tabSoju = document.getElementById('tabSoju');
-      const tabSomaekNum = document.getElementById('tabSomaekNum');
-      const tabSojuNum = document.getElementById('tabSojuNum');
-      const phaseTitle = document.getElementById('phaseTitle');
-      const currentCount = document.getElementById('currentCount');
-      const targetCount = document.getElementById('targetCount');
-      const statusMsg = document.getElementById('statusMsg');
-      const dynamicMaxDisplay = document.getElementById('dynamicMaxDisplay');
-      const bottleEq = document.getElementById('bottleEq');
-      const addBtn = document.getElementById('addBtn');
-      const logBox = document.getElementById('logBox');
+    function updateUI() {
+      const sojuCount = history.filter(item => item === 'soju').length;
+      const somaekCount = history.filter(item => item === 'somaek').length;
 
-      const maxSoju = getMaxSojuAllowed();
-      const totalMl = (state.somaekCount * SOMAEK_EQ_ML) + (state.sojuCount * SOJU_3_4_ML);
-      const bottles = (totalMl / 360).toFixed(2);
-      const isOverLimit = (state.sojuCount > maxSoju) || (totalMl > TARGET_LIMIT_ML + 15);
-      const isAtLimit = (state.sojuCount === maxSoju && maxSoju > 0);
-      const isWarning = !isOverLimit && !isAtLimit && (maxSoju - state.sojuCount <= 3);
+      // 총 소모 유닛 계산 (소맥을 마실수록 남은 소주 허용치가 자동으로 줄어듦)
+      const usedUnits = (sojuCount * 1.0) + (somaekCount * SOMAEK_TO_SOJU_RATIO);
+      const remainSoju = Math.max(0, Math.floor(MAX_ALCOHOL_UNITS - usedUnits));
 
-      // 상단 탭 숫자 및 스타일 업데이트
-      tabSomaekNum.textContent = state.somaekCount;
-      tabSojuNum.textContent = state.sojuCount;
-      tabSomaek.className = state.mode === 'somaek' ? 'tab-btn active-somaek' : 'tab-btn';
-      tabSoju.className = state.mode === 'soju' ? 'tab-btn active-soju' : 'tab-btn';
+      // 소주 병 수 환산 (기존 화면 기준: 17잔 ≈ 2.5병 -> 1유닛당 약 0.147병)
+      const bottles = (usedUnits * (2.5 / 17)).toFixed(2);
+      // 순수 알코올(g) 환산 (소주 1병 ≈ 57.6g 기준)
+      const pureAlcoholGrams = Math.round(bottles * 57.6);
 
-      // 하단 요약 카드 업데이트
-      dynamicMaxDisplay.textContent = `최대 ${maxSoju}잔`;
-      bottleEq.textContent = `${bottles} 병`;
+      document.getElementById('remainSoju').innerText = `${remainSoju}잔`;
+      document.getElementById('drinkCountText').innerText = `소주 ${sojuCount} · 소맥 ${somaekCount}`;
+      document.getElementById('totalBottles').innerText = `${bottles} 병`;
+      document.getElementById('totalAlcohol').innerText = `알코올 약 ${pureAlcoholGrams}g`;
 
-      // 배경 및 버튼 초기화
-      document.body.className = '';
-      addBtn.className = 'btn-add';
-
-      if (isOverLimit) {
-        document.body.className = 'state-danger';
-        addBtn.className = 'btn-add danger';
-      } else if (isAtLimit || isWarning) {
-        document.body.className = 'state-warning';
-        addBtn.className = 'btn-add warning';
-      }
-
-      // 현재 선택된 모드에 따른 메인 화면 렌더링
-      if (state.mode === 'somaek') {
-        phaseTitle.textContent = `소맥 카운트 (권장 ${RECOMMENDED_SOMAEK}잔)`;
-        currentCount.textContent = state.somaekCount;
-        targetCount.textContent = `/ ${RECOMMENDED_SOMAEK}잔`;
-
-        if (!isOverLimit && !isAtLimit && !isWarning) {
-          addBtn.className = 'btn-add somaek-btn';
-        }
-        addBtn.textContent = '+1 소맥 추가';
-
-        if (isOverLimit) {
-          statusMsg.style.color = '#ff1744';
-          statusMsg.textContent = '🚨 경고: 소주 2병 반 한도를 넘겼습니다!';
-        } else {
-          statusMsg.style.color = '#ffd54f';
-          statusMsg.textContent = `현재 소맥 ${state.somaekCount}잔 → 소주 최대 ${maxSoju}잔 가능`;
-        }
+      // 허용치 초과 시 경고 색상 변경
+      const remainEl = document.getElementById('remainSoju');
+      if (remainSoju === 0) {
+        remainEl.style.color = '#ff453a';
+      } else if (remainSoju <= 4) {
+        remainEl.style.color = '#ff9f0a';
       } else {
-        phaseTitle.textContent = `소주(3/4잔) 한도: 최대 ${maxSoju}잔`;
-        currentCount.textContent = state.sojuCount;
-        targetCount.textContent = `/ ${maxSoju}잔`;
-
-        if (isOverLimit) {
-          statusMsg.style.color = '#ff1744';
-          statusMsg.textContent = `🚨 위험! 한도(${maxSoju}잔)를 ${state.sojuCount - maxSoju}잔 초과했습니다!`;
-          addBtn.textContent = '한도 초과 (+1 추가)';
-        } else if (isAtLimit) {
-          statusMsg.style.color = '#ffab00';
-          statusMsg.textContent = '🛑 딱 목표 한도에 도달했습니다! 이제 물만 드세요.';
-          addBtn.textContent = '한도 도달 (+1 추가)';
-        } else if (isWarning) {
-          statusMsg.style.color = '#ffab00';
-          statusMsg.textContent = `⚠️ 주의: 한도까지 딱 ${maxSoju - state.sojuCount}잔 남았습니다!`;
-          addBtn.textContent = '+1 소주 추가 (주의)';
-        } else {
-          statusMsg.style.color = '#00e676';
-          statusMsg.textContent = `남은 여유 잔 수: ${maxSoju - state.sojuCount}잔`;
-          addBtn.textContent = '+1 소주 추가';
-        }
-      }
-
-      // 로그 렌더링
-      if (state.logs.length > 0) {
-        logBox.innerHTML = state.logs.map(log => `
-          <div class="log-item">
-            <span><strong>${log.type}</strong> ${log.num}잔째</span>
-            <span>${log.time}</span>
-          </div>
-        `).join('');
-      } else {
-        logBox.innerHTML = '<div style="text-align:center; padding-top:20px;">아직 마신 기록이 없습니다.</div>';
+        remainEl.style.color = '#ffffff';
       }
     }
 
-    render();
+    updateUI();
   </script>
 </body>
 </html>
