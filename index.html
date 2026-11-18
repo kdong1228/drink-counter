@@ -26,7 +26,6 @@
       transition: background-color 0.25s ease;
     }
 
-    /* 18잔 초과 시 전체 배경 붉은 톤 경고 */
     body.over-limit {
       background-color: #2b0505;
     }
@@ -61,7 +60,6 @@
       transition: background-color 0.25s ease, border-color 0.25s ease;
     }
 
-    /* 18잔 초과 시 상단 카드 빨간색 강조 */
     body.over-limit .card {
       background-color: #450a0a;
       border-color: #ff453a;
@@ -119,11 +117,10 @@
       letter-spacing: -0.3px;
       position: relative;
       overflow: hidden;
-      touch-action: manipulation;
     }
 
     button:active {
-      opacity: 0.8;
+      opacity: 0.75;
       transform: scale(0.95);
     }
 
@@ -144,6 +141,11 @@
       font-weight: 700;
       opacity: 0.8;
       margin-top: 2px;
+      pointer-events: none;
+    }
+
+    .btn-somaek span, .btn-soju span {
+      pointer-events: none;
     }
 
     /* 꾹 누를 때 차오르는 진행 게이지 */
@@ -154,7 +156,7 @@
       height: 6px;
       width: 0%;
       background-color: #ffd60a;
-      transition: none;
+      pointer-events: none;
     }
 
     /* 3. 하단 취소 및 초기화 버튼 */
@@ -272,20 +274,20 @@
 
     <!-- 2. 메인 추가 버튼 (좌: 소맥 / 우: 소주) -->
     <div class="btn-row">
-      <button class="btn-somaek" id="somaekBtn">
+      <button type="button" class="btn-somaek" id="somaekBtn">
         <span>+1 소맥</span>
         <span class="btn-hint">1초 꾹: 맥주만</span>
         <div class="hold-progress" id="holdProgress"></div>
       </button>
-      <button class="btn-soju" onclick="addDrink('soju')">
+      <button type="button" class="btn-soju" id="sojuBtn">
         <span>+1 소주</span>
       </button>
     </div>
 
     <!-- 3. 직전 취소 & 전체 리셋 -->
     <div class="bottom-row">
-      <button class="btn-undo" onclick="undoLast()">취소 (-1)</button>
-      <button class="btn-reset" onclick="resetAll()">초기화</button>
+      <button type="button" class="btn-undo" id="undoBtn">취소 (-1)</button>
+      <button type="button" class="btn-reset" id="resetBtn">초기화</button>
     </div>
   </div>
 
@@ -311,77 +313,69 @@
     let history = [];
     let overlayTimer = null;
 
-    // 꾹 누르기 중복 방지용 단일 상태 변수
+    // watchOS Safari 완벽 호환 터치 제어
     let pressTimer = null;
-    let pressHandled = false;
-    let isPressing = false;
+    let isTouching = false;
+    let longPressTriggered = false;
+    let lastEventTime = 0;
     const HOLD_DURATION = 1000;
 
     const somaekBtn = document.getElementById('somaekBtn');
     const holdProgress = document.getElementById('holdProgress');
 
-    somaekBtn.addEventListener('pointerdown', (e) => {
-      if (e.button !== undefined && e.button !== 0) return;
-      e.preventDefault();
+    function handlePressStart(e) {
+      // touchstart 후 따라오는 mousedown 중복 방지
+      if (e.type === 'mousedown' && Date.now() - lastEventTime < 500) return;
+      lastEventTime = Date.now();
 
-      isPressing = true;
-      pressHandled = false;
+      isTouching = true;
+      longPressTriggered = false;
 
       holdProgress.style.transition = `width ${HOLD_DURATION}ms linear`;
       holdProgress.style.width = '100%';
 
+      if (pressTimer) clearTimeout(pressTimer);
       pressTimer = setTimeout(() => {
-        if (!isPressing) return;
-        pressHandled = true; // 1초 도달 시 이미 처리됨으로 잠금
-        isPressing = false;
+        if (!isTouching) return;
+        longPressTriggered = true;
+        isTouching = false;
         resetProgress();
         addDrink('beer');
       }, HOLD_DURATION);
-    });
+    }
 
-    somaekBtn.addEventListener('pointerup', (e) => {
-      e.preventDefault();
+    function handlePressEnd(e) {
+      if (e.type === 'mouseup' && Date.now() - lastEventTime < 500) return;
+      lastEventTime = Date.now();
+
       if (pressTimer) {
         clearTimeout(pressTimer);
         pressTimer = null;
       }
       resetProgress();
 
-      // 1초가 되기 전에 손을 뗐고, 아직 처리되지 않았을 때만 소맥 1잔 추가
-      if (isPressing && !pressHandled) {
-        pressHandled = true;
+      // 1초 도달 전에 떼었을 때만 소맥 추가
+      if (isTouching && !longPressTriggered) {
         addDrink('somaek');
       }
-      isPressing = false;
-    });
-
-    somaekBtn.addEventListener('pointercancel', () => {
-      if (pressTimer) {
-        clearTimeout(pressTimer);
-        pressTimer = null;
-      }
-      resetProgress();
-      isPressing = false;
-      pressHandled = true;
-    });
-
-    somaekBtn.addEventListener('pointerleave', () => {
-      if (pressTimer) {
-        clearTimeout(pressTimer);
-        pressTimer = null;
-      }
-      resetProgress();
-      isPressing = false;
-      pressHandled = true;
-    });
-
-    // 우클릭/길게 누르기 기본 컨텍스트 메뉴 차단
-    somaekBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+      isTouching = false;
+      longPressTriggered = false;
+    }
 
     function resetProgress() {
       holdProgress.style.transition = 'none';
       holdProgress.style.width = '0%';
     }
+
+    somaekBtn.addEventListener('touchstart', handlePressStart, { passive: true });
+    somaekBtn.addEventListener('touchend', handlePressEnd);
+    somaekBtn.addEventListener('mousedown', handlePressStart);
+    somaekBtn.addEventListener('mouseup', handlePressEnd);
+
+    // 나머지 버튼들은 표준 click으로 확실하게 바인딩
+    document.getElementById('sojuBtn').addEventListener('click', () => addDrink('soju'));
+    document.getElementById('undoBtn').addEventListener('click', undoLast);
+    document.getElementById('resetBtn').addEventListener('click', resetAll);
 
     function getTotalUnits() {
       const sojuCount = history.filter(item => item === 'soju').length;
@@ -413,7 +407,6 @@
 
       if (navigator.vibrate) {
         if (type === 'warning') {
-          // 18잔 초과 시 강한 경고 진동 패턴
           navigator.vibrate([150, 70, 150, 70, 200]);
         } else if (type === 'beer') {
           navigator.vibrate([40, 30, 40]);
@@ -456,4 +449,58 @@
       if (history.length > 0) {
         const removed = history.pop();
         updateUI();
-        const labelMap = { soju: '소주', somaek: '소맥', beer: '맥주'
+        const labelMap = { soju: '소주', somaek: '소맥', beer: '맥주' };
+        showFeedback('undo', '↩️', `${labelMap[removed]} 취소`);
+      }
+    }
+
+    function resetAll() {
+      if (history.length === 0) return;
+      history = [];
+      updateUI();
+      showFeedback('reset', '🔄', '초기화 완료');
+    }
+
+    function updateUI() {
+      const sojuCount = history.filter(item => item === 'soju').length;
+      const somaekCount = history.filter(item => item === 'somaek').length;
+      const beerCount = history.filter(item => item === 'beer').length;
+
+      const usedUnits = getTotalUnits();
+      const diff = MAX_ALCOHOL_UNITS - usedUnits;
+
+      const remainLabelEl = document.getElementById('remainLabel');
+      const remainEl = document.getElementById('remainSoju');
+
+      if (diff < 0) {
+        document.body.classList.add('over-limit');
+        remainLabelEl.innerText = '한도 초과!';
+        remainEl.innerText = `+${Math.abs(diff).toFixed(1)}잔`;
+        remainEl.style.color = '#ff453a';
+      } else {
+        document.body.classList.remove('over-limit');
+        remainLabelEl.innerText = '남은 소주';
+        const remainSoju = Math.floor(diff);
+        remainEl.innerText = `${remainSoju}잔`;
+
+        if (remainSoju === 0) {
+          remainEl.style.color = '#ff453a';
+        } else if (remainSoju <= 4) {
+          remainEl.style.color = '#ff9f0a';
+        } else {
+          remainEl.style.color = '#ffffff';
+        }
+      }
+
+      const bottles = (usedUnits * (2.5 / MAX_ALCOHOL_UNITS)).toFixed(2);
+      const pureAlcoholGrams = Math.round(bottles * 57.6);
+
+      document.getElementById('drinkCountText').innerText = `소${sojuCount} · 쏘${somaekCount} · 맥${beerCount}`;
+      document.getElementById('totalBottles').innerText = `${bottles}병`;
+      document.getElementById('totalAlcohol').innerText = `${pureAlcoholGrams}g`;
+    }
+
+    updateUI();
+  </script>
+</body>
+</html>
