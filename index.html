@@ -29,66 +29,70 @@
       flex-direction: column;
       justify-content: space-between;
       height: 100%;
-      padding: 4px 6px 8px 6px;
-      gap: 4px;
+      padding: 4px 5px 6px 5px;
+      gap: 5px;
     }
 
-    /* 상단 상태 카드 2열 */
+    /* 1. 상단 상태 카드 2열 */
     .status-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 4px;
-      height: 36%;
+      gap: 5px;
+      height: 38%;
     }
 
     .card {
       background: #1c1c1e;
-      border-radius: 10px;
+      border-radius: 12px;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      padding: 2px 4px;
+      padding: 2px;
       text-align: center;
     }
 
     .card-label {
-      font-size: 9px;
-      color: #a1a1a6;
+      font-size: 12px;
+      font-weight: 600;
+      color: #b0b0b5;
       line-height: 1.1;
       margin-bottom: 2px;
-      word-break: keep-all;
     }
 
     .card-value {
-      font-size: 16px;
-      font-weight: 800;
+      font-size: 24px;
+      font-weight: 900;
+      line-height: 1.1;
       color: #ffffff;
+      letter-spacing: -0.5px;
     }
 
     .card-sub {
-      font-size: 9px;
+      font-size: 11px;
+      font-weight: 700;
       color: #30d158;
-      margin-top: 1px;
+      margin-top: 2px;
     }
 
-    /* 메인 추가 버튼 영역 */
+    /* 2. 메인 추가 버튼 영역 */
     .btn-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 4px;
+      gap: 5px;
       height: 38%;
     }
 
     button {
       border: none;
-      border-radius: 12px;
-      font-weight: 700;
+      border-radius: 14px;
+      font-weight: 900;
       cursor: pointer;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
+      letter-spacing: -0.3px;
     }
 
     button:active {
@@ -99,40 +103,33 @@
     .btn-soju {
       background-color: #28cd41;
       color: #000000;
-      font-size: 13px;
+      font-size: 18px;
     }
 
     .btn-somaek {
       background-color: #ff9f0a;
       color: #000000;
-      font-size: 13px;
+      font-size: 18px;
     }
 
-    .btn-sub {
-      font-size: 9px;
-      font-weight: 600;
-      opacity: 0.85;
-      margin-top: 1px;
-    }
-
-    /* 하단 취소 및 초기화 버튼 */
+    /* 3. 하단 취소 및 초기화 버튼 */
     .bottom-row {
       display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 4px;
-      height: 22%;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 5px;
+      height: 20%;
     }
 
     .btn-undo {
       background-color: #2c2c2e;
       color: #ffffff;
-      font-size: 11px;
+      font-size: 14px;
     }
 
     .btn-reset {
       background-color: #3a1c1c;
       color: #ff453a;
-      font-size: 11px;
+      font-size: 14px;
     }
 
     /* 풀스크린 클릭 피드백 오버레이 */
@@ -154,36 +151,36 @@
     }
 
     .overlay-soju {
-      background-color: rgba(40, 205, 65, 0.96);
+      background-color: rgba(40, 205, 65, 0.97);
       color: #000000;
     }
 
     .overlay-somaek {
-      background-color: rgba(255, 159, 10, 0.96);
+      background-color: rgba(255, 159, 10, 0.97);
       color: #000000;
     }
 
     .overlay-undo {
-      background-color: rgba(58, 58, 60, 0.96);
+      background-color: rgba(58, 58, 60, 0.97);
       color: #ffffff;
     }
 
     .overlay-reset {
-      background-color: rgba(255, 69, 58, 0.96);
+      background-color: rgba(255, 69, 58, 0.97);
       color: #ffffff;
     }
 
     .overlay-icon {
-      font-size: 54px;
+      font-size: 72px;
       line-height: 1;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       animation: popScale 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
     .overlay-text {
-      font-size: 17px;
+      font-size: 24px;
       font-weight: 900;
-      letter-spacing: -0.3px;
+      letter-spacing: -0.5px;
     }
 
     @keyframes popScale {
@@ -194,42 +191,35 @@
   </style>
 </head>
 <body>
-  <!-- 클릭 시 화면 전체를 덮는 알림 레이어 -->
   <div id="feedbackOverlay">
     <div class="overlay-icon" id="overlayIcon">🍶</div>
-    <div class="overlay-text" id="overlayText">소주 +1잔!</div>
+    <div class="overlay-text" id="overlayText">소주 1잔!</div>
   </div>
 
   <div class="container">
     <!-- 1. 상단 정보 표시 -->
     <div class="status-grid">
       <div class="card">
-        <div class="card-label">남은 소주 허용치</div>
+        <div class="card-label">남은 소주</div>
         <div class="card-value" id="remainSoju">17잔</div>
-        <div class="card-sub" id="drinkCountText">소주 0 · 소맥 0</div>
+        <div class="card-sub" id="drinkCountText">소0 · 맥0</div>
       </div>
       <div class="card">
-        <div class="card-label">누적 알코올</div>
-        <div class="card-value" id="totalBottles">0.00 병</div>
-        <div class="card-sub" id="totalAlcohol">알코올 약 0g</div>
+        <div class="card-label">누적 병수</div>
+        <div class="card-value" id="totalBottles">0.0병</div>
+        <div class="card-sub" id="totalAlcohol">0g</div>
       </div>
     </div>
 
-    <!-- 2. 메인 추가 버튼 (소주 / 소맥) -->
+    <!-- 2. 메인 추가 버튼 -->
     <div class="btn-row">
-      <button class="btn-soju" onclick="addDrink('soju')">
-        <span>+1 소주</span>
-        <span class="btn-sub">3/4잔</span>
-      </button>
-      <button class="btn-somaek" onclick="addDrink('somaek')">
-        <span>+1 소맥</span>
-        <span class="btn-sub">제한없음</span>
-      </button>
+      <button class="btn-soju" onclick="addDrink('soju')">+1 소주</button>
+      <button class="btn-somaek" onclick="addDrink('somaek')">+1 소맥</button>
     </div>
 
     <!-- 3. 직전 취소 & 전체 리셋 -->
     <div class="bottom-row">
-      <button class="btn-undo" onclick="undoLast()">직전 1잔 취소 (-1)</button>
+      <button class="btn-undo" onclick="undoLast()">취소 (-1)</button>
       <button class="btn-reset" onclick="resetAll()">초기화</button>
     </div>
   </div>
@@ -246,21 +236,18 @@
       const iconEl = document.getElementById('overlayIcon');
       const textEl = document.getElementById('overlayText');
 
-      // 이전 타이머 초기화 (연속 클릭 대응)
       if (overlayTimer) clearTimeout(overlayTimer);
 
       overlay.className = `overlay-${type}`;
       iconEl.innerText = icon;
       textEl.innerText = text;
 
-      // 애니메이션 재실행 트릭
       iconEl.style.animation = 'none';
-      iconEl.offsetHeight; 
+      iconEl.offsetHeight;
       iconEl.style.animation = null;
 
       overlay.classList.add('show');
 
-      // 진동 지원 기기일 경우 짧은 진동 추가
       if (navigator.vibrate) {
         navigator.vibrate(40);
       }
@@ -288,7 +275,7 @@
         const removed = history.pop();
         updateUI();
         const label = removed === 'soju' ? '소주' : '소맥';
-        showFeedback('undo', '↩️', `${label} 1잔 취소`);
+        showFeedback('undo', '↩️', `${label} 취소`);
       }
     }
 
@@ -296,7 +283,7 @@
       if (history.length === 0) return;
       history = [];
       updateUI();
-      showFeedback('reset', '🔄', '기록 초기화');
+      showFeedback('reset', '🔄', '초기화 완료');
     }
 
     function updateUI() {
@@ -310,9 +297,9 @@
       const pureAlcoholGrams = Math.round(bottles * 57.6);
 
       document.getElementById('remainSoju').innerText = `${remainSoju}잔`;
-      document.getElementById('drinkCountText').innerText = `소주 ${sojuCount} · 소맥 ${somaekCount}`;
-      document.getElementById('totalBottles').innerText = `${bottles} 병`;
-      document.getElementById('totalAlcohol').innerText = `알코올 약 ${pureAlcoholGrams}g`;
+      document.getElementById('drinkCountText').innerText = `소${sojuCount} · 맥${somaekCount}`;
+      document.getElementById('totalBottles').innerText = `${bottles}병`;
+      document.getElementById('totalAlcohol').innerText = `${pureAlcoholGrams}g`;
 
       const remainEl = document.getElementById('remainSoju');
       if (remainSoju === 0) {
