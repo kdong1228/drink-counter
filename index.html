@@ -13,6 +13,7 @@
       padding: 0;
       -webkit-tap-highlight-color: transparent;
       -webkit-touch-callout: none;
+      -webkit-user-select: none;
       user-select: none;
       touch-action: manipulation;
     }
@@ -27,6 +28,7 @@
       color: #ffffff;
       font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
       transition: background-color 0.25s ease;
+      touch-action: none;
     }
 
     body.over-limit {
@@ -205,7 +207,6 @@
       justify-content: center;
       align-items: center;
       opacity: 0;
-      /* 피드백 표시 중에는 화면 전체가 터치를 가로채 중복 입력 차단 */
       pointer-events: none;
       transition: opacity 0.15s ease-out;
     }
@@ -311,12 +312,26 @@
 
   <script>
     // ==========================================
-    // 1. iOS / watchOS 더블탭 및 핀치 줌 원천 차단
+    // 1. iOS / watchOS 더블탭 및 핀치 줌 차단
     // ==========================================
+    let lastTouchStart = 0;
     let lastTouchEnd = 0;
+
+    document.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 1) {
+        e.preventDefault();
+        return;
+      }
+      const now = Date.now();
+      if (now - lastTouchStart <= 360) {
+        e.preventDefault();
+      }
+      lastTouchStart = now;
+    }, { passive: false });
+
     document.addEventListener('touchend', (e) => {
       const now = Date.now();
-      if (now - lastTouchEnd <= 350) {
+      if (now - lastTouchEnd <= 360) {
         e.preventDefault();
       }
       lastTouchEnd = now;
@@ -395,7 +410,7 @@
     `;
 
     let overlayTimer = null;
-    let isOverlayActive = false; // 피드백 애니메이션 진행 중 입력 잠금 플래그
+    let isOverlayActive = false;
 
     let pressTimer = null;
     let isTouching = false;
@@ -418,7 +433,7 @@
     }
 
     function handlePressStart(e) {
-      if (isOverlayActive) return; // 애니메이션 중 추가 입력 차단
+      if (isOverlayActive) return;
       if (e.type === 'mousedown' && Date.now() - lastEventTime < 500) return;
       lastEventTime = Date.now();
 
@@ -526,7 +541,6 @@
       const iconEl = document.getElementById('overlayIcon');
       const textEl = document.getElementById('overlayText');
 
-      // 피드백 시작과 동시에 버튼 눌림 상태 초기화 및 입력 잠금
       clearAllPressedStates();
       isOverlayActive = true;
 
@@ -548,7 +562,7 @@
 
       overlayTimer = setTimeout(() => {
         overlay.classList.remove('show');
-        isOverlayActive = false; // 피드백 종료 후 버튼 잠금 해제
+        isOverlayActive = false;
       }, 900);
     }
 
