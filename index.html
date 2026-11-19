@@ -28,7 +28,6 @@
       color: #ffffff;
       font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
       transition: background-color 0.25s ease;
-      touch-action: none;
     }
 
     body.over-limit {
@@ -42,6 +41,32 @@
       height: 100%;
       padding: 4px 5px 6px 5px;
       gap: 5px;
+    }
+
+    /* 보기 전용(?view=1) 모드일 때 상단 카드를 넓게 표시 */
+    body.view-only .status-grid {
+      height: 82%;
+    }
+
+    body.view-only .btn-row,
+    body.view-only .bottom-row {
+      display: none;
+    }
+
+    .view-banner {
+      display: none;
+      height: 14%;
+      background: #1c1c1e;
+      border-radius: 12px;
+      justify-content: center;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 800;
+      color: #ffd60a;
+    }
+
+    body.view-only .view-banner {
+      display: flex;
     }
 
     /* 1. 상단 상태 카드 2열 */
@@ -88,6 +113,10 @@
       line-height: 1.1;
       color: #ffffff;
       letter-spacing: -0.5px;
+    }
+
+    body.view-only .card-value {
+      font-size: 28px;
     }
 
     .card-sub {
@@ -277,6 +306,8 @@
   </div>
 
   <div class="container">
+    <div class="view-banner" id="viewBanner">실시간 공유 중 · 보기 전용</div>
+
     <!-- 1. 상단 정보 표시 -->
     <div class="status-grid">
       <div class="card">
@@ -312,6 +343,20 @@
 
   <script>
     // ==========================================
+    // 0. Firebase 실시간 공유 설정 (여기만 수정)
+    // ==========================================
+    // 예: "https://my-drink-app-default-rtdb.firebaseio.com"
+    const DB_URL = "";
+    // 남들이 추측하기 어려운 나만의 방 코드로 변경하세요
+    const ROOM_ID = "kdong_private_room_9482";
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const IS_VIEW_ONLY = urlParams.get('view') === '1';
+    if (IS_VIEW_ONLY) {
+      document.body.classList.add('view-only');
+    }
+
+    // ==========================================
     // 1. iOS / watchOS 더블탭 및 핀치 줌 차단
     // ==========================================
     let lastTouchStart = 0;
@@ -343,7 +388,7 @@
     document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
 
     // ==========================================
-    // 2. 영구 저장소 (localStorage) 상태 관리
+    // 2. 로컬 저장소 + Firebase 실시간 동기화
     // ==========================================
     const STORAGE_KEY = 'kdong_drink_counter_v2';
     const MAX_ALCOHOL_UNITS = 18.0;
@@ -353,17 +398,69 @@
     let history = [];
     let lastUpdatedAt = null;
 
-    function saveState() {
+    function getCloudEndpoint() {
+      if (!DB_URL) return null;
+      const cleanBase = DB_URL.replace(/\/+$/, '');
+      return `${cleanBase}/rooms/${encodeURIComponent(ROOM_ID)}.json`;
+    }
+
+    async function pushToCloud(payload) {
+      const endpoint = getCloudEndpoint();
+      if (!endpoint) return;
       try {
-        const payload = {
-          history: history,
-          updatedAt: Date.now()
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-        lastUpdatedAt = payload.updatedAt;
+        await fetch(endpoint, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
       } catch (err) {
-        console.error('저장 실패:', err);
+        console.error('클라우드 업로드 실패:', err);
       }
+    }
+
+    async function pullFromCloud() {
+      const endpoint = getCloudEndpoint();
+      if (!endpoint) return;
+      try {
+        const res = await fetch(endpoint + '?t=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && Array.isArray(data.history)) {
+          const cloudTime = data.updatedAt || 0;
+          const localTime = lastUpdatedAt || 0;
+          // 보기 전용이거나 클라우드 기록이 더 최신일 때 반영
+          if (IS_VIEW_ONLY || cloudTime >= localTime) {
+            history = data.history;
+            lastUpdatedAt = data.updatedAt || null;
+            saveLocalOnly(history, lastUpdatedAt);
+            updateUI();
+          }
+        }
+      } catch (err) {
+        console.error('클라우드 조회 실패:', err);
+      }
+    }
+
+    function saveLocalOnly(hist, ts) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          history: hist,
+          updatedAt: ts
+        }));
+      } catch (err) {
+        console.error('로컬 저장 실패:', err);
+      }
+    }
+
+    function saveState() {
+      const now = Date.now();
+      lastUpdatedAt = now;
+      const payload = {
+        history: history,
+        updatedAt: now
+      };
+      saveLocalOnly(history, now);
+      pushToCloud(payload);
     }
 
     function loadState() {
@@ -384,13 +481,22 @@
       if (document.visibilityState === 'visible') {
         loadState();
         updateUI();
+        pullFromCloud();
       }
     });
 
     window.addEventListener('pageshow', () => {
       loadState();
       updateUI();
+      pullFromCloud();
     });
+
+    // 3초마다 서버 상태를 폴링해 여자친구 화면에 실시간 반영
+    setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        pullFromCloud();
+      }
+    }, 3000);
 
     // ==========================================
     // 3. UI 및 버튼 인터랙션 로직
@@ -433,7 +539,7 @@
     }
 
     function handlePressStart(e) {
-      if (isOverlayActive) return;
+      if (IS_VIEW_ONLY || isOverlayActive) return;
       if (e.type === 'mousedown' && Date.now() - lastEventTime < 500) return;
       lastEventTime = Date.now();
 
@@ -456,6 +562,7 @@
     }
 
     function handlePressEnd(e) {
+      if (IS_VIEW_ONLY) return;
       if (e.type === 'mouseup' && Date.now() - lastEventTime < 500) return;
       lastEventTime = Date.now();
 
@@ -485,12 +592,15 @@
       holdProgress.style.width = '0%';
     }
 
-    somaekBtn.addEventListener('touchstart', handlePressStart, { passive: true });
-    somaekBtn.addEventListener('touchend', handlePressEnd);
-    somaekBtn.addEventListener('mousedown', handlePressStart);
-    somaekBtn.addEventListener('mouseup', handlePressEnd);
+    if (!IS_VIEW_ONLY) {
+      somaekBtn.addEventListener('touchstart', handlePressStart, { passive: true });
+      somaekBtn.addEventListener('touchend', handlePressEnd);
+      somaekBtn.addEventListener('mousedown', handlePressStart);
+      somaekBtn.addEventListener('mouseup', handlePressEnd);
+    }
 
     function bindInstantButton(btnId, actionFn) {
+      if (IS_VIEW_ONLY) return;
       const btn = document.getElementById(btnId);
       let btnLastTime = 0;
 
@@ -567,7 +677,7 @@
     }
 
     function addDrink(type) {
-      if (isOverlayActive) return;
+      if (IS_VIEW_ONLY || isOverlayActive) return;
       cancelResetConfirm();
       history.push(type);
       saveState();
@@ -595,7 +705,7 @@
     }
 
     function undoLast() {
-      if (isOverlayActive) return;
+      if (IS_VIEW_ONLY || isOverlayActive) return;
       cancelResetConfirm();
       if (history.length > 0) {
         const removed = history.pop();
@@ -610,7 +720,7 @@
     let resetConfirmTimer = null;
 
     function handleResetClick() {
-      if (isOverlayActive) return;
+      if (IS_VIEW_ONLY || isOverlayActive) return;
       if (history.length === 0) return;
 
       const resetBtn = document.getElementById('resetBtn');
@@ -693,6 +803,7 @@
 
     loadState();
     updateUI();
+    pullFromCloud();
   </script>
 </body>
 </html>
