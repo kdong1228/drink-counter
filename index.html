@@ -74,7 +74,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 5px;
-      height: 40%;
+      height: 38%;
     }
 
     .card {
@@ -85,7 +85,7 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      padding: 3px 4px;
+      padding: 2px;
       text-align: center;
       transition: background-color 0.25s ease, border-color 0.25s ease;
     }
@@ -96,7 +96,7 @@
     }
 
     .card-label {
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 600;
       color: #b0b0b5;
       line-height: 1.1;
@@ -108,7 +108,7 @@
     }
 
     .card-value {
-      font-size: 22px;
+      font-size: 23px;
       font-weight: 900;
       line-height: 1.1;
       color: #ffffff;
@@ -120,19 +120,18 @@
     }
 
     .card-sub {
-      font-size: 9.5px;
+      font-size: 10px;
       font-weight: 700;
       color: #30d158;
-      margin-top: 3px;
-      line-height: 1.22;
-      letter-spacing: -0.4px;
-      word-break: keep-all;
+      margin-top: 2px;
+      letter-spacing: -0.3px;
     }
 
     body.view-only .card-sub {
       font-size: 13px;
       margin-top: 8px;
       line-height: 1.35;
+      word-break: keep-all;
     }
 
     body.over-limit .card-sub {
@@ -144,7 +143,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 5px;
-      height: 36%;
+      height: 38%;
     }
 
     button {
@@ -321,12 +320,12 @@
       <div class="card">
         <div class="card-label" id="remainLabel">남은 소주</div>
         <div class="card-value" id="remainSoju">18잔</div>
-        <div class="card-sub" id="drinkCountText">아직 마신 잔이 없습니다</div>
+        <div class="card-sub" id="drinkCountText">소0 · 쏘0 · 맥0</div>
       </div>
       <div class="card">
         <div class="card-label" id="bottleLabel">누적 병수</div>
         <div class="card-value" id="totalBottles">0.00병</div>
-        <div class="card-sub" id="totalAlcohol">주량 두병 반 기준으로<br>2.50병 남았습니다</div>
+        <div class="card-sub" id="totalAlcohol">0g</div>
       </div>
     </div>
 
@@ -803,32 +802,40 @@
         }
       }
 
-      // 왼쪽 하단 문구 생성: "소주 3잔 · 소맥 1잔 마셨습니다"
-      const parts = [];
-      if (sojuCount > 0) parts.push(`소주 ${sojuCount}잔`);
-      if (somaekCount > 0) parts.push(`소맥 ${somaekCount}잔`);
-      if (beerCount > 0) parts.push(`맥주 ${beerCount}잔`);
-
-      const drinkTextEl = document.getElementById('drinkCountText');
-      if (parts.length === 0) {
-        drinkTextEl.innerText = '아직 마신 잔이 없습니다';
-      } else {
-        drinkTextEl.innerHTML = `${parts.join(' · ')}<br>마셨습니다`;
-      }
-
-      // 오른쪽 상단 병수 & 하단 남은 병수 문구 생성
       const MAX_BOTTLES = 2.5;
       const bottlesNum = usedUnits * (MAX_BOTTLES / MAX_ALCOHOL_UNITS);
       const bottlesStr = bottlesNum.toFixed(2);
-      const remainBottles = MAX_BOTTLES - bottlesNum;
+      const pureAlcoholGrams = Math.round(bottlesNum * 57.6);
+      const timeStr = lastUpdatedAt && history.length > 0 ? ` (${formatLastTime(lastUpdatedAt)})` : '';
 
       document.getElementById('totalBottles').innerText = `${bottlesStr}병`;
 
+      const drinkTextEl = document.getElementById('drinkCountText');
       const bottleSubEl = document.getElementById('totalAlcohol');
-      if (remainBottles >= 0) {
-        bottleSubEl.innerHTML = `주량 두병 반 기준으로<br>${remainBottles.toFixed(2)}병 남았습니다`;
+
+      if (IS_VIEW_ONLY) {
+        // 여자친구용(?view=1) 화면: 친절한 문장형 표시
+        const parts = [];
+        if (sojuCount > 0) parts.push(`소주 ${sojuCount}잔`);
+        if (somaekCount > 0) parts.push(`소맥 ${somaekCount}잔`);
+        if (beerCount > 0) parts.push(`맥주 ${beerCount}잔`);
+
+        if (parts.length === 0) {
+          drinkTextEl.innerText = '아직 마신 잔이 없습니다';
+        } else {
+          drinkTextEl.innerHTML = `${parts.join(' · ')}<br>마셨습니다`;
+        }
+
+        const remainBottles = MAX_BOTTLES - bottlesNum;
+        if (remainBottles >= 0) {
+          bottleSubEl.innerHTML = `주량 두병 반 기준으로<br>${remainBottles.toFixed(2)}병 남았습니다`;
+        } else {
+          bottleSubEl.innerHTML = `주량 두병 반 기준으로<br>${Math.abs(remainBottles).toFixed(2)}병 초과했습니다`;
+        }
       } else {
-        bottleSubEl.innerHTML = `주량 두병 반 기준으로<br>${Math.abs(remainBottles).toFixed(2)}병 초과했습니다`;
+        // 내 워치 입력용 화면: 기존처럼 짧고 깔끔하게 표시
+        drinkTextEl.innerText = `소${sojuCount} · 쏘${somaekCount} · 맥${beerCount}`;
+        bottleSubEl.innerText = `${pureAlcoholGrams}g${timeStr}`;
       }
     }
 
