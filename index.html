@@ -343,11 +343,9 @@
 
   <script>
     // ==========================================
-    // 0. Firebase 실시간 공유 설정 (여기만 수정)
+    // 0. Firebase 실시간 공유 설정
     // ==========================================
-    // 예: "https://my-drink-app-default-rtdb.firebaseio.com"
     const DB_URL = "https://drink-counter-dfa4e-default-rtdb.asia-southeast1.firebasedatabase.app/";
-    // 남들이 추측하기 어려운 나만의 방 코드로 변경하세요
     const ROOM_ID = "kdong_drink-counter_room_1228";
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -408,11 +406,14 @@
       const endpoint = getCloudEndpoint();
       if (!endpoint) return;
       try {
-        await fetch(endpoint, {
+        const res = await fetch(endpoint, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
+        if (!res.ok) {
+          console.error('클라우드 업로드 응답 오류:', res.status);
+        }
       } catch (err) {
         console.error('클라우드 업로드 실패:', err);
       }
@@ -423,14 +424,17 @@
       if (!endpoint) return;
       try {
         const res = await fetch(endpoint + '?t=' + Date.now(), { cache: 'no-store' });
-        if (!res.ok) return;
+        if (!res.ok) {
+          console.error('클라우드 조회 응답 오류:', res.status);
+          return;
+        }
         const data = await res.json();
-        if (data && Array.isArray(data.history)) {
+        if (data && typeof data === 'object') {
+          const cloudHistory = Array.isArray(data.history) ? data.history : [];
           const cloudTime = data.updatedAt || 0;
           const localTime = lastUpdatedAt || 0;
-          // 보기 전용이거나 클라우드 기록이 더 최신일 때 반영
           if (IS_VIEW_ONLY || cloudTime >= localTime) {
-            history = data.history;
+            history = cloudHistory;
             lastUpdatedAt = data.updatedAt || null;
             saveLocalOnly(history, lastUpdatedAt);
             updateUI();
@@ -491,7 +495,6 @@
       pullFromCloud();
     });
 
-    // 3초마다 서버 상태를 폴링해 여자친구 화면에 실시간 반영
     setInterval(() => {
       if (document.visibilityState === 'visible') {
         pullFromCloud();
