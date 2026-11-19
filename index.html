@@ -189,7 +189,6 @@
       box-shadow: 0 2px 0 #1f0d0d;
     }
 
-    /* 초기화 2단계 확인 상태 */
     .btn-reset.confirm-mode {
       background-color: #ff453a;
       color: #ffffff;
@@ -206,12 +205,14 @@
       justify-content: center;
       align-items: center;
       opacity: 0;
+      /* 피드백 표시 중에는 화면 전체가 터치를 가로채 중복 입력 차단 */
       pointer-events: none;
       transition: opacity 0.15s ease-out;
     }
 
     #feedbackOverlay.show {
       opacity: 1;
+      pointer-events: auto;
     }
 
     .overlay-soju {
@@ -229,7 +230,6 @@
       color: #000000;
     }
 
-    /* 한도 초과 시 빨간색 고정 오버레이 (번쩍임 제거) */
     .overlay-warning {
       background-color: rgba(255, 45, 32, 0.97);
       color: #ffffff;
@@ -395,6 +395,8 @@
     `;
 
     let overlayTimer = null;
+    let isOverlayActive = false; // 피드백 애니메이션 진행 중 입력 잠금 플래그
+
     let pressTimer = null;
     let isTouching = false;
     let longPressTriggered = false;
@@ -404,7 +406,19 @@
     const somaekBtn = document.getElementById('somaekBtn');
     const holdProgress = document.getElementById('holdProgress');
 
+    function clearAllPressedStates() {
+      document.querySelectorAll('button.is-pressed').forEach(b => b.classList.remove('is-pressed'));
+      if (pressTimer) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+      resetProgress();
+      isTouching = false;
+      longPressTriggered = false;
+    }
+
     function handlePressStart(e) {
+      if (isOverlayActive) return; // 애니메이션 중 추가 입력 차단
       if (e.type === 'mousedown' && Date.now() - lastEventTime < 500) return;
       lastEventTime = Date.now();
 
@@ -417,7 +431,7 @@
 
       if (pressTimer) clearTimeout(pressTimer);
       pressTimer = setTimeout(() => {
-        if (!isTouching) return;
+        if (!isTouching || isOverlayActive) return;
         longPressTriggered = true;
         isTouching = false;
         somaekBtn.classList.remove('is-pressed');
@@ -437,6 +451,12 @@
         pressTimer = null;
       }
       resetProgress();
+
+      if (isOverlayActive) {
+        isTouching = false;
+        longPressTriggered = false;
+        return;
+      }
 
       if (isTouching && !longPressTriggered) {
         addDrink('somaek');
@@ -460,6 +480,7 @@
       let btnLastTime = 0;
 
       btn.addEventListener('touchstart', () => {
+        if (isOverlayActive) return;
         btnLastTime = Date.now();
         btn.classList.add('is-pressed');
       }, { passive: true });
@@ -467,6 +488,7 @@
       btn.addEventListener('touchend', () => {
         btnLastTime = Date.now();
         btn.classList.remove('is-pressed');
+        if (isOverlayActive) return;
         actionFn();
       });
 
@@ -475,6 +497,7 @@
       });
 
       btn.addEventListener('mousedown', () => {
+        if (isOverlayActive) return;
         if (Date.now() - btnLastTime < 500) return;
         btn.classList.add('is-pressed');
       });
@@ -482,6 +505,7 @@
       btn.addEventListener('mouseup', () => {
         if (Date.now() - btnLastTime < 500) return;
         btn.classList.remove('is-pressed');
+        if (isOverlayActive) return;
         actionFn();
       });
     }
@@ -502,6 +526,10 @@
       const iconEl = document.getElementById('overlayIcon');
       const textEl = document.getElementById('overlayText');
 
+      // 피드백 시작과 동시에 버튼 눌림 상태 초기화 및 입력 잠금
+      clearAllPressedStates();
+      isOverlayActive = true;
+
       if (overlayTimer) clearTimeout(overlayTimer);
 
       overlay.className = `overlay-${type}`;
@@ -520,10 +548,12 @@
 
       overlayTimer = setTimeout(() => {
         overlay.classList.remove('show');
+        isOverlayActive = false; // 피드백 종료 후 버튼 잠금 해제
       }, 900);
     }
 
     function addDrink(type) {
+      if (isOverlayActive) return;
       cancelResetConfirm();
       history.push(type);
       saveState();
@@ -551,6 +581,7 @@
     }
 
     function undoLast() {
+      if (isOverlayActive) return;
       cancelResetConfirm();
       if (history.length > 0) {
         const removed = history.pop();
@@ -565,6 +596,7 @@
     let resetConfirmTimer = null;
 
     function handleResetClick() {
+      if (isOverlayActive) return;
       if (history.length === 0) return;
 
       const resetBtn = document.getElementById('resetBtn');
