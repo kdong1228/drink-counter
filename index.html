@@ -319,7 +319,7 @@
     <div class="status-grid">
       <div class="card">
         <div class="card-label" id="remainLabel">남은 소주</div>
-        <div class="card-value" id="remainSoju">20잔</div>
+        <div class="card-value" id="remainSoju">22잔</div>
         <div class="card-sub" id="drinkCountText">소0 · 쏘0 · 맥0</div>
       </div>
       <div class="card">
@@ -397,14 +397,14 @@
     // ==========================================
     const STORAGE_KEY = 'kdong_drink_counter_v2';
 
-    // 소주 1잔당 0.12병 증가 기준 (주량 2.5병)
-    const BOTTLE_PER_SOJU = 0.12;
+    // 소주 22잔 = 2.5병 기준 (1잔당 약 0.1136병)
+    const MAX_ALCOHOL_UNITS = 22.0;
     const MAX_BOTTLES = 2.5;
-    const MAX_ALCOHOL_UNITS = MAX_BOTTLES / BOTTLE_PER_SOJU; // 약 20.83잔
+    const BOTTLE_PER_SOJU = MAX_BOTTLES / MAX_ALCOHOL_UNITS;
 
     // 소주 1잔 대비 소맥·맥주 환산 비율
-    const SOMAEK_TO_SOJU_RATIO = 1.20; // 소주 1잔당 0.12병 기준 -> 약 0.144병
-    const BEER_TO_SOJU_RATIO = 0.50;   // 소주 1잔당 0.12병 기준 -> 0.06병
+    const SOMAEK_TO_SOJU_RATIO = 1.20;
+    const BEER_TO_SOJU_RATIO = 0.50;
 
     let history = [];
     let lastUpdatedAt = null;
@@ -808,7 +808,7 @@
         }
       }
 
-      // 소주 1잔당 정확히 0.12병씩 증가
+      // 소주 22잔 = 2.5병 기준으로 병수 계산
       const bottlesNum = usedUnits * BOTTLE_PER_SOJU;
       const bottlesStr = bottlesNum.toFixed(2);
       const pureAlcoholGrams = Math.round(bottlesNum * 57.6);
